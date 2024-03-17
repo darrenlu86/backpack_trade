@@ -8,7 +8,6 @@ function delay(ms) {
     });
 }
 
-//当前年份日期时分秒
 function getNowFormatDate() {
     var date = new Date();
     var seperator1 = "-";
@@ -42,46 +41,40 @@ function getNowFormatDate() {
 let successbuy = 0;
 let sellbuy = 0;
 
-const init = async (client) => {
+const init = async (client, symbol) => {
     try {
+        const randomDelay = Math.random() * 27000 + 5000;
         console.log(`成功买入次数:${successbuy},成功卖出次数:${sellbuy}`);
-        console.log(getNowFormatDate(), "等待3秒...");
-        await delay(3000);
+        console.log(getNowFormatDate(), "等待"+randomDelay+"秒...");
+        await delay(randomDelay);
         console.log(getNowFormatDate(), "正在获取账户信息中...");
         let userbalance = await client.Balance();
-        //判断账号USDC余额是否大于5
         if (userbalance.USDC.available > 5) {
-            await buyfun(client);
+            await buyfun(client, symbol);
         } else {
-            await sellfun(client);
+            await sellfun(client, symbol);
             return;
         }
     } catch (e) {
-        init(client);
+        init(client, symbol);
         console.log(getNowFormatDate(), "挂单失败，重新挂单中...");
         await delay(1000);
     }
 }
 
-
-
-const sellfun = async (client) => {
-    //取消所有未完成订单
-    let GetOpenOrders = await client.GetOpenOrders({ symbol: "SOL_USDC" });
+const sellfun = async (client, symbol) => {
+    let GetOpenOrders = await client.GetOpenOrders({ symbol });
     if (GetOpenOrders.length > 0) {
-        let CancelOpenOrders = await client.CancelOpenOrders({ symbol: "SOL_USDC" });
+        let CancelOpenOrders = await client.CancelOpenOrders({ symbol });
         console.log(getNowFormatDate(), "取消了所有挂单");
     } else {
         console.log(getNowFormatDate(), "账号订单正常，无需取消挂单");
     }
     console.log(getNowFormatDate(), "正在获取账户信息中...");
-    //获取账户信息
     let userbalance2 = await client.Balance();
     console.log(getNowFormatDate(), "账户信息:", userbalance2);
-    console.log(getNowFormatDate(), "正在获取sol_usdc的市场当前价格中...");
-    //获取当前
-    let { lastPrice: lastPriceask } = await client.Ticker({ symbol: "SOL_USDC" });
-    console.log(getNowFormatDate(), "sol_usdc的市场当前价格:", lastPriceask);
+    let { lastPrice: lastPriceask } = await client.Ticker({ symbol });
+    console.log(getNowFormatDate(), `${symbol}的市场当前价格:`, lastPriceask);
     let quantitys = ((userbalance2.SOL.available / 2) - 0.02).toFixed(2).toString();
     console.log(getNowFormatDate(), `正在卖出中... 卖${quantitys}个SOL`);
     let orderResultAsk = await client.ExecuteOrder({
@@ -89,7 +82,7 @@ const sellfun = async (client) => {
         price: lastPriceask.toString(),
         quantity: quantitys,
         side: "Ask", //卖
-        symbol: "SOL_USDC",
+        symbol,
         timeInForce: "IOC"
     })
 
@@ -97,46 +90,41 @@ const sellfun = async (client) => {
         console.log(getNowFormatDate(), "卖出成功");
         sellbuy += 1;
         console.log(getNowFormatDate(), "订单详情:", `卖出价格:${orderResultAsk.price}, 卖出数量:${orderResultAsk.quantity}, 订单号:${orderResultAsk.id}`);
-        init(client);
+        init(client, symbol);
     } else {
         console.log(getNowFormatDate(), "卖出失败");
         throw new Error("卖出失败");
     }
 }
 
-const buyfun = async (client) => {
-    //取消所有未完成订单
-    let GetOpenOrders = await client.GetOpenOrders({ symbol: "SOL_USDC" });
+const buyfun = async (client, symbol) => {
+    let GetOpenOrders = await client.GetOpenOrders({ symbol });
     if (GetOpenOrders.length > 0) {
-        let CancelOpenOrders = await client.CancelOpenOrders({ symbol: "SOL_USDC" });
+        let CancelOpenOrders = await client.CancelOpenOrders({ symbol });
         console.log(getNowFormatDate(), "取消了所有挂单");
     } else {
         console.log(getNowFormatDate(), "账号订单正常，无需取消挂单");
     }
     console.log(getNowFormatDate(), "正在获取账户信息中...");
-    //获取账户信息
     let userbalance = await client.Balance();
     console.log(getNowFormatDate(), "账户信息:", userbalance);
-    console.log(getNowFormatDate(), "正在获取sol_usdc的市场当前价格中...");
-    //获取当前
-    let { lastPrice } = await client.Ticker({ symbol: "SOL_USDC" });
-    console.log(getNowFormatDate(), "sol_usdc的市场当前价格:", lastPrice);
-    console.log(getNowFormatDate(), `正在买入中... 花${(userbalance.USDC.available - 2).toFixed(2).toString()}个USDC买SOL`);
+    let { lastPrice } = await client.Ticker({ symbol });
+    console.log(getNowFormatDate(), `${symbol}的市场当前价格:`, lastPrice);
     let quantitys = ((userbalance.USDC.available - 2) / lastPrice).toFixed(2).toString();
-    console.log("1024", quantitys);
+    console.log(getNowFormatDate(), `正在买入中... 花${(userbalance.USDC.available - 2).toFixed(2).toString()}个USDC买SOL`);
     let orderResultBid = await client.ExecuteOrder({
         orderType: "Limit",
         price: lastPrice.toString(),
         quantity: quantitys,
         side: "Bid", //买
-        symbol: "SOL_USDC",
+        symbol,
         timeInForce: "IOC"
     })
     if (orderResultBid?.status == "Filled" && orderResultBid?.side == "Bid") {
         console.log(getNowFormatDate(), "下单成功");
         successbuy += 1;
         console.log(getNowFormatDate(), "订单详情:", `购买价格:${orderResultBid.price}, 购买数量:${orderResultBid.quantity}, 订单号:${orderResultBid.id}`);
-        init(client);
+        init(client, symbol);
     } else {
         console.log(getNowFormatDate(), "下单失败");
         throw new Error("买入失败");
@@ -147,29 +135,6 @@ const buyfun = async (client) => {
     const apisecret = "";
     const apikey = "";
     const client = new backpack_client_1.BackpackClient(apisecret, apikey);
-    init(client);
+    const tradingPair = "SOL_USDC"; // 可以改成你想要的交易對，例如 "MOBILE_USDC"
+    init(client, tradingPair);
 })()
-
-// 卖出
-// client.ExecuteOrder({
-//     orderType: "Limit",
-//     price: "110.00",
-//     quantity: "0.36",
-//     side: "Ask", //卖
-//     symbol: "SOL_USDC",
-//     timeInForce: "IOC"
-// }).then((result) => {
-//     console.log(getNowFormatDate(),result);
-// })
-
-// 买入
-// client.ExecuteOrder({
-//     orderType: "Limit",
-//     price: "110.00",
-//     quantity: "0.36",
-//     side: "Bid", //买
-//     symbol: "SOL_USDC",
-//     timeInForce: "IOC"
-// }).then((result) => {
-//     console.log(getNowFormatDate(),result);
-// })
