@@ -43,7 +43,7 @@ let sellbuy = 0;
 
 const init = async (client, symbol) => {
     try {
-        const randomDelay = Math.random() * 27000 + 5000;
+        const randomDelay = Math.random() * 18000 + 5000;
         console.log(`成功买入次数:${successbuy},成功卖出次数:${sellbuy}`);
         console.log(getNowFormatDate(), "等待"+randomDelay+"秒...");
         await delay(randomDelay);
@@ -75,8 +75,9 @@ const sellfun = async (client, symbol) => {
     console.log(getNowFormatDate(), "账户信息:", userbalance2);
     let { lastPrice: lastPriceask } = await client.Ticker({ symbol });
     console.log(getNowFormatDate(), `${symbol}的市场当前价格:`, lastPriceask);
-    let quantitys = ((userbalance2.SOL.available / 2) - 0.02).toFixed(2).toString();
-    console.log(getNowFormatDate(), `正在卖出中... 卖${quantitys}个SOL`);
+    let asset = symbol.split('_')[0]; // 获取资产标识，例如"SOL"从"SOL_USDC"
+    let quantitys = ((userbalance2[asset].available / 2) - 0.02).toFixed(2).toString();
+    console.log(getNowFormatDate(), `正在卖出中... 卖${quantitys}个${asset}`);
     let orderResultAsk = await client.ExecuteOrder({
         orderType: "Limit",
         price: lastPriceask.toString(),
@@ -111,7 +112,8 @@ const buyfun = async (client, symbol) => {
     let { lastPrice } = await client.Ticker({ symbol });
     console.log(getNowFormatDate(), `${symbol}的市场当前价格:`, lastPrice);
     let quantitys = ((userbalance.USDC.available - 2) / lastPrice).toFixed(2).toString();
-    console.log(getNowFormatDate(), `正在买入中... 花${(userbalance.USDC.available - 2).toFixed(2).toString()}个USDC买SOL`);
+    let asset = symbol.split('_')[0]; // 用于日志消息中
+    console.log(getNowFormatDate(), `正在买入中... 花${(userbalance.USDC.available - 2).toFixed(2).toString()}个USDC买${asset}`);
     let orderResultBid = await client.ExecuteOrder({
         orderType: "Limit",
         price: lastPrice.toString(),
