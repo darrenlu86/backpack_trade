@@ -48,9 +48,12 @@ function getNowFormatDate() {
 
 let successbuy = 0;
 let sellbuy = 0;
+let operationCount = 0;
+
 
 const init = async (client, symbol) => {
     try {
+        operationCount++;
         const randomDelay = Math.random() * 18000 + 5000;// 5到23秒的随机延迟
         console.log(`成功买入次数:${successbuy},成功卖出次数:${sellbuy}`);
         console.log(getNowFormatDate(), "等待"+randomDelay+"秒...");
