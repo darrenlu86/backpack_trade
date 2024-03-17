@@ -8,6 +8,14 @@ function delay(ms) {
     });
 }
 
+function randomBreak() {
+    // 定义5到10分钟的随机延迟时间
+    const minutes = Math.random() * 5 + 5;
+    const delayTime = minutes * 60 * 1000; // 将分钟转换为毫秒
+    console.log(`${getNowFormatDate()}，即将休息${minutes.toFixed(2)}分钟...`);
+    return delay(delayTime); // 使用之前定义的`delay`函数进行延迟
+}
+
 function getNowFormatDate() {
     var date = new Date();
     var seperator1 = "-";
@@ -43,10 +51,15 @@ let sellbuy = 0;
 
 const init = async (client, symbol) => {
     try {
-        const randomDelay = Math.random() * 18000 + 5000;
+        const randomDelay = Math.random() * 18000 + 5000;// 5到23秒的随机延迟
         console.log(`成功买入次数:${successbuy},成功卖出次数:${sellbuy}`);
         console.log(getNowFormatDate(), "等待"+randomDelay+"秒...");
         await delay(randomDelay);
+        // 每约30分钟（根据操作次数和延迟时间估算）进行一次长时间随机休息
+        if (operationCount >= 60) { // 假设平均每次操作耗时30秒，则60次大约30分钟
+            await randomBreak(); // 执行随机休息
+            operationCount = 0; // 重置计数器
+        }
         console.log(getNowFormatDate(), "正在获取账户信息中...");
         let userbalance = await client.Balance();
         if (userbalance.USDC.available > 5) {
